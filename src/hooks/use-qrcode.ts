@@ -188,19 +188,10 @@ export const useQRCode = (): [QRCodeState, QRCodeActions] => {
       const clipboardCtx = clipboardCanvas.getContext('2d')
       if (!clipboardCtx) throw new Error('Could not get canvas context')
 
-      // Use same size as download - exact Chromium sizing
-      const margin = QUIET_ZONE_SIZE_PIXELS // 40 pixels (4 modules * 10 pixels)
-      const chromiumSize = state.originalSize * MODULE_SIZE_PIXELS + margin * 2
-      clipboardCanvas.width = chromiumSize
-      clipboardCanvas.height = chromiumSize
-
-      clipboardCtx.imageSmoothingEnabled = false
-      clipboardCtx.imageSmoothingQuality = 'high'
-
       // Re-render QR code at exact size
-      renderQRCodeAtSize(
+      renderQRCodeToCanvasWithSize(
+        clipboardCanvas,
         clipboardCtx,
-        chromiumSize,
         state.qrData,
         state.qrSize,
         state.originalSize
@@ -234,26 +225,10 @@ export const useQRCode = (): [QRCodeState, QRCodeActions] => {
       const downloadCtx = downloadCanvas.getContext('2d')
       if (!downloadCtx) return
 
-      // Calculate exact size matching Chromium's RenderBitmap function
-      const margin = QUIET_ZONE_SIZE_PIXELS // 40 pixels (4 modules * 10 pixels)
-      const chromiumSize = state.originalSize * MODULE_SIZE_PIXELS + margin * 2
-
-      // Set download canvas to exact Chromium size
-      downloadCanvas.width = chromiumSize
-      downloadCanvas.height = chromiumSize
-
-      // Clear canvas with white background
-      downloadCtx.fillStyle = backgroundColor
-      downloadCtx.fillRect(0, 0, chromiumSize, chromiumSize)
-
-      // Enable high quality scaling
-      downloadCtx.imageSmoothingEnabled = false
-      downloadCtx.imageSmoothingQuality = 'high'
-
       // Re-render QR code at exact download size
-      renderQRCodeAtSize(
+      renderQRCodeToCanvasWithSize(
+        downloadCanvas,
         downloadCtx,
-        chromiumSize,
         state.qrData,
         state.qrSize,
         state.originalSize
@@ -504,107 +479,40 @@ const drawCenterImage = (
   )
 }
 
-// Helper function to render QR code on canvas
-export const renderQRCodeToCanvas = (
+const renderQRCodeToCanvasWithSize = (
   canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
   qrData: Uint8Array,
   qrSize: number,
   originalSize: number
 ) => {
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-
-  const kQRImageSizePx = 240
-  const devicePixelRatio = window.devicePixelRatio || 1
-  const canvasSize = kQRImageSizePx * devicePixelRatio
-
-  canvas.width = canvasSize
-  canvas.height = canvasSize
-  canvas.style.width = '240px'
-  canvas.style.height = '240px'
-
-  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
+  const canvasSize =
+    originalSize * MODULE_SIZE_PIXELS + QUIET_ZONE_SIZE_PIXELS * 2
+  // Set canvas size to match original size with quiet zone
+  canvas.height = canvas.width = canvasSize
 
   // Clear canvas with white background
   ctx.fillStyle = backgroundColor
-  ctx.fillRect(0, 0, kQRImageSizePx, kQRImageSizePx)
+  ctx.fillRect(0, 0, canvasSize, canvasSize)
 
-  // Calculate scaling
-  const totalPixelsNeeded = kQRImageSizePx
-  const modulePixelSize = Math.floor(totalPixelsNeeded / originalSize)
-  const margin = Math.floor(
-    (totalPixelsNeeded - originalSize * modulePixelSize) / 2
-  )
-
-  ctx.imageSmoothingEnabled = true
+  // Enable high quality scaling
+  ctx.imageSmoothingEnabled = false
   ctx.imageSmoothingQuality = 'high'
 
-  const paintBlack = { color: moduleColor }
-  const paintWhite = { color: backgroundColor }
+  renderQRCodeAtSize(ctx, canvasSize, qrData, qrSize, originalSize)
+}
 
-  // Check if data has quiet zone
-  const hasQuietZone = qrSize > originalSize
-  const quietZoneModules = hasQuietZone ? (qrSize - originalSize) / 2 : 0
+// Helper function to render QR code on canvas
+export const renderQRCodeToCanvas = (
+  canvas: HTMLCanvasElement,
+  ...args: [Uint8Array, number, number]
+) => {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  // Set canvas size to 240x240px
+  canvas.style.height = canvas.style.width = '240px'
 
-  // First pass: Draw data modules
-  for (let y = 0; y < qrSize; y++) {
-    for (let x = 0; x < qrSize; x++) {
-      const dataIndex = y * qrSize + x
-      if (qrData[dataIndex] & 0x1) {
-        let originalX: number, originalY: number
-        if (hasQuietZone) {
-          originalX = x - quietZoneModules
-          originalY = y - quietZoneModules
-
-          if (
-            originalX < 0 ||
-            originalY < 0 ||
-            originalX >= originalSize ||
-            originalY >= originalSize
-          ) {
-            continue
-          }
-        } else {
-          originalX = x
-          originalY = y
-        }
-
-        const isLocator = isLocatorModule(originalX, originalY, originalSize)
-        if (isLocator) {
-          continue
-        }
-
-        // Draw data module with circles style
-        const centerX = margin + (originalX + 0.5) * modulePixelSize
-        const centerY = margin + (originalY + 0.5) * modulePixelSize
-        const radius = modulePixelSize / 2 - 1
-
-        ctx.fillStyle = paintBlack.color
-        ctx.beginPath()
-        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI)
-        ctx.fill()
-      }
-    }
-  }
-
-  // Second pass: Draw locators
-  drawLocators(
-    ctx,
-    { width: originalSize, height: originalSize },
-    paintBlack,
-    paintWhite,
-    margin,
-    modulePixelSize
-  )
-
-  // Third pass: Draw center image
-  const canvasBounds = {
-    x: 0,
-    y: 0,
-    width: kQRImageSizePx,
-    height: kQRImageSizePx
-  }
-  drawCenterImage(ctx, canvasBounds, paintWhite, modulePixelSize)
+  renderQRCodeToCanvasWithSize(canvas, ctx, ...args)
 }
 
 // Render QR code at specific size (for download/copy) - exactly matching Chromium
