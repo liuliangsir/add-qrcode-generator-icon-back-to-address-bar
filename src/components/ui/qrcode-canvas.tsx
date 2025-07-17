@@ -20,28 +20,24 @@ export const QRCodeCanvas = forwardRef<HTMLCanvasElement, QRCodeCanvasProps>(
 
       if (qrData && qrSize > 0) {
         renderQRCodeToCanvas(canvas, qrData, qrSize, originalSize)
-      } else {
-        // Clear canvas with white background (matching Chromium)
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          const size = 240
-          canvas.width = size
-          canvas.height = size
-          canvas.style.width = '240px'
-          canvas.style.height = '240px'
-
-          // Set crisp rendering via CSS classes
-          canvas.className = 'block qr-canvas'
-
-          ctx.fillStyle = '#FFFFFF' // White background matching Chromium
-          ctx.fillRect(0, 0, size, size)
-        }
+        return
       }
+      // Clear canvas with white background (matching Chromium)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      const size = 240
+
+      canvas.height = canvas.width = size
+      canvas.style.height = canvas.style.width = `${size}px`
+      ctx.fillStyle = '#FFFFFF' // White background matching Chromium
+      ctx.fillRect(0, 0, size, size)
     }, [qrData, qrSize, originalSize])
 
     return (
       <>
         <canvas
+          className='qr-canvas'
           ref={(node) => {
             canvasRef.current = node
             if (typeof ref === 'function') {
@@ -50,9 +46,7 @@ export const QRCodeCanvas = forwardRef<HTMLCanvasElement, QRCodeCanvasProps>(
               ref.current = node
             }
           }}
-          className='qr-canvas block'
         />
-
         {/* Error overlay matching Chromium style */}
         {error && !error.includes('too long') && (
           <div className='absolute inset-0 flex items-center justify-center bg-white/90 p-2.5'>
@@ -61,7 +55,6 @@ export const QRCodeCanvas = forwardRef<HTMLCanvasElement, QRCodeCanvasProps>(
             </p>
           </div>
         )}
-
         {/* Loading overlay */}
         {isLoading && (
           <div className='absolute inset-0 flex items-center justify-center bg-white/75'>

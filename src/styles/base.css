@@ -147,15 +147,6 @@
 }
 
 @layer components {
-  /* Chromium-style QR code canvas crisp rendering */
-  .qr-canvas {
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-  }
-
   /* Chromium bubble exact replica styles */
   .chromium-bubble {
     --tw-shadow: 0 2px 10px var(--tw-shadow-color, rgba(0, 0, 0, 0.12));
