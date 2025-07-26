@@ -1,0 +1,122 @@
+name: Create Release Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0, 1.0.0-alpha.1, 1.0.0-beta.1, 1.0.0-rc.1)'
+        required: true
+        type: string
+      update_package_version:
+        description: 'Update package.json version'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.3.0'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: '10.12.4'
+
+    - name: Validate version format
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z]+\.[0-9]+)?$ ]]; then
+          echo "Error: Version format is invalid. Use formats like 1.0.0, 1.0.0-alpha.1, 1.0.0-beta.1, or 1.0.0-rc.1"
+          exit 1
+        fi
+        echo "Version format is valid: $VERSION"
+
+    - name: Check if tag already exists
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+          echo "Error: Tag v$VERSION already exists"
+          exit 1
+        fi
+        echo "Tag v$VERSION does not exist, proceeding..."
+
+    - name: Update package.json version
+      if: ${{ github.event.inputs.update_package_version == 'true' }}
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        npm version $VERSION --no-git-tag-version
+        echo "Updated package.json version to $VERSION"
+
+    - name: Install dependencies and build
+      run: |
+        pnpm install --frozen-lockfile
+        pnpm build
+        pnpm build:firefox
+
+    - name: Commit version change
+      if: ${{ github.event.inputs.update_package_version == 'true' }}
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add package.json
+        git commit -m "chore: bump version to $VERSION" || echo "No changes to commit"
+
+    - name: Create and push tag
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag "v$VERSION"
+        git push origin "v$VERSION"
+
+        # Also push the version commit if it was made
+        if [[ "${{ github.event.inputs.update_package_version }}" == "true" ]]; then
+          git push origin main
+        fi
+
+    - name: Create release notes
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "## Release v$VERSION" > release_notes.md
+        echo "" >> release_notes.md
+        echo "### 🚀 Features" >> release_notes.md
+        echo "- List new features here" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### 🐛 Bug Fixes" >> release_notes.md
+        echo "- List bug fixes here" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### 📦 Installation" >> release_notes.md
+        echo "1. Download the appropriate extension file for your browser" >> release_notes.md
+        echo "2. Install it in your browser" >> release_notes.md
+        echo "" >> release_notes.md
+        if [[ $VERSION =~ -(alpha|beta|rc) ]]; then
+          echo "⚠️ **This is a pre-release version for testing purposes.**" >> release_notes.md
+        fi
+
+    - name: Display next steps
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "✅ Tag v$VERSION has been created and pushed successfully!"
+        echo ""
+        echo "🚀 The release workflow will now automatically:"
+        echo "  - Build the extension for Chrome and Firefox"
+        echo "  - Create a GitHub release with downloadable assets"
+        if [[ ! $VERSION =~ -(alpha|beta|rc) ]]; then
+          echo "  - Publish to Chrome Web Store and Firefox Add-ons (for stable releases)"
+        else
+          echo "  - Mark as pre-release (alpha/beta/rc versions won't be published to stores)"
+        fi
+        echo ""
+        echo "📍 You can monitor the progress in the Actions tab."

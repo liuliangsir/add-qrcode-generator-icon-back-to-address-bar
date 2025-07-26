@@ -138,6 +138,25 @@ Downloaded QR codes automatically get meaningful filenames:
 - High contrast mode support
 - Proper ARIA labels and descriptions
 
+## 🚀 Releases
+
+This project uses automated releases through GitHub Actions. See [Release Guide](.github/RELEASE_GUIDE.md) for details.
+
+### Creating a Release
+
+```bash
+# Stable release (publishes to stores)
+./scripts/release.sh 1.0.0
+
+# Pre-release (GitHub only)
+./scripts/release.sh 1.0.0-alpha.1
+```
+
+### Version Types
+
+- **Stable** (1.0.0): Auto-published to Chrome Web Store and Firefox Add-ons
+- **Alpha/Beta/RC** (1.0.0-alpha.1): GitHub releases only for testing
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
