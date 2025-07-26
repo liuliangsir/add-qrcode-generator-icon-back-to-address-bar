@@ -138,6 +138,29 @@ src/
 - 高对比度模式支持
 - 正确的 ARIA 标签和描述
 
+## 🚀 发布
+
+这个项目使用 GitHub Actions 自动化发布。
+
+### 创建一个发布
+
+```bash
+# 稳定版本（发布到商店）
+pnpm version 1.0.0
+git push origin main
+git push origin 1.0.0
+
+# 预发布版本（仅 GitHub）
+pnpm version 1.0.0-alpha.1
+git push origin main
+git push origin 1.0.0-alpha.1
+```
+
+### 版本类型
+
+- **稳定版本**（1.0.0）：用于发布到 Chrome 和 Firefox 扩展商店
+- **预发布版本**（1.0.0-alpha.1）：仅用于 GitHub，适合测试和开发
+
 ## 🤝 贡献指南
 
 欢迎贡献！请随时提交 Pull Request。对于重大更改，请先打开 issue 讨论您想要更改的内容。
