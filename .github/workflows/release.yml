@@ -3,7 +3,7 @@ name: Release Extension
 on:
   push:
     tags:
-      - 'v*'
+      - '*.*.*'
 
 env:
   NODE_VERSION: '24.3.0'
