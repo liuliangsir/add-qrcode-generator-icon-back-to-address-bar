@@ -11,7 +11,7 @@ env:
   PNPM_VERSION: '10.12.4'
 
 jobs:
-  test:
+  artifacts:
     runs-on: ubuntu-latest
 
     steps:
@@ -61,16 +61,22 @@ jobs:
         pnpm zip
         pnpm zip:firefox
 
+    - name: Extract version from tag
+      id: version
+      run: |
+        TAG=${GITHUB_REF#refs/tags/v}
+        echo "version=$TAG" >> $GITHUB_OUTPUT
+
     - name: Upload Chrome build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: chrome-extension
-        path: ./.output/add-qrcode-generator-icon-back-to-address-bar-chrome.zip
+        path: ./.output/add-qrcode-generator-icon-back-to-address-bar-chrome-${{ steps.version.outputs.version }}.zip
         retention-days: 30
 
     - name: Upload Firefox build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: firefox-extension
-        path: ./.output/add-qrcode-generator-icon-back-to-address-bar-firefox.zip
+        path: ./.output/add-qrcode-generator-icon-back-to-address-bar-firefox-${{ steps.version.outputs.version }}.zip
         retention-days: 30
