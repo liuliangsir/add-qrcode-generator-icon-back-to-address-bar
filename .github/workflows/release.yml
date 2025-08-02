@@ -71,8 +71,8 @@ jobs:
         draft: false
         prerelease: ${{ steps.version.outputs.is_prerelease }}
         files: |
-          ./.output/add-qrcode-generator-icon-back-to-address-bar-${{ steps.version.outputs.version }}-chrome.zip
-          ./.output/add-qrcode-generator-icon-back-to-address-bar-${{ steps.version.outputs.version }}-firefox.zip
+          .output/add-qrcode-generator-icon-back-to-address-bar-${{ steps.version.outputs.version }}-chrome.zip
+          .output/add-qrcode-generator-icon-back-to-address-bar-${{ steps.version.outputs.version }}-firefox.zip
         body: |
           ## Release ${{ steps.version.outputs.version }}
 
